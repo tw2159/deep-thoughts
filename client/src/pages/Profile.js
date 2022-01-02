@@ -1,12 +1,15 @@
 import React from 'react';
 import { Redirect, useParams } from 'react-router-dom';
-import Auth from '../utils/auth';
+import ThoughtForm from '../components/ThoughtForm';
 
 import ThoughtList from '../components/ThoughtList';
 import FriendList from '../components/FriendList';
 
 import { useQuery } from '@apollo/react-hooks';
 import { QUERY_USER, QUERY_ME } from '../utils/queries';
+import Auth from '../utils/auth';
+import { ADD_FRIEND } from '../utils/mutations';
+import { useQuery, useMutation } from '@apollo/client';
 
 const Profile = props => {
   const { username: userParam } = useParams();
@@ -16,11 +19,24 @@ const Profile = props => {
   });
 
   const user = data?.me || data?.user || {};
+  const [addFriend] = useMutation(ADD_FRIEND);
+  const handleClick = async () => {
+    try {
+      await addFriend({
+        variables: { id: user._id }
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
-  // redirect to personal profile page if username is the logged-in user's
-if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-  return <Redirect to="/profile" />;
-}
+  // redirect to personal profile page if username is yours
+  if (
+    Auth.loggedIn() &&
+    Auth.getProfile().data.username === userParam
+  ) {
+    return <Redirect to="/profile" />;
+  }
 
   if (loading) {
     return <div>Loading...</div>;
@@ -29,7 +45,7 @@ if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
   if (!user?.username) {
     return (
       <h4>
-        You need to be logged in to see this page. Use the navigation links above to sign up or log in!
+        You need to be logged in to see this. Use the navigation links above to sign up or log in!
       </h4>
     );
   }
@@ -41,6 +57,11 @@ if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
           Viewing {userParam ? `${user.username}'s` : 'your'} profile.
         </h2>
       </div>
+        {userParam && (
+        <button className="btn ml-auto" onClick={handleClick}>
+          Add Friend
+        </button>
+)}
 
       <div className="flex-row justify-space-between mb-3">
         <div className="col-12 mb-3 col-lg-8">
@@ -55,6 +76,7 @@ if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
           />
         </div>
       </div>
+      <div className="mb-3">{!userParam && <ThoughtForm />}</div>
     </div>
   );
 };
